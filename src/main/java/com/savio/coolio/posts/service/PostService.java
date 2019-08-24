@@ -5,8 +5,11 @@ import com.savio.coolio.posts.repository.PostRepository;
 import com.savio.coolio.posts.templates.PostCreationRequest;
 import com.savio.coolio.posts.templates.PostCreationResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 /**
  * This class has service methods for the Post Controller
@@ -16,8 +19,14 @@ import org.springframework.stereotype.Service;
 @Service
 public class PostService {
 
+    @Value("${coolioposts.coolio-service-url}")
+    private String coolioServiceURL;
+
     @Autowired
     PostRepository postRepository;
+
+    @Autowired
+    RestTemplateBuilder restTemplateBuilder;
 
     public ResponseEntity<PostCreationResponse> createPost(PostCreationRequest postCreationRequest){
         if(!sanityCheck(postCreationRequest)){
@@ -36,7 +45,15 @@ public class PostService {
             postEntity.setTextContent(postCreationRequest.getTextContent());
 
             PostEntity createdPostEntity = new PostEntity();
-            createdPostEntity = postRepository.save(postEntity);
+            if(isUserFound(postCreationRequest.getUserName(), postCreationRequest.getPassWord())){
+                createdPostEntity = postRepository.save(postEntity);
+            } else {
+                PostCreationResponse nullPostCreationResponse = new PostCreationResponse();
+                nullPostCreationResponse.setPostTitle("NA");
+                nullPostCreationResponse.setResponseText("Couldn't create Post - User Not Found");
+                nullPostCreationResponse.setStatusCode("-1");
+                return ResponseEntity.badRequest().header("status", "User not found in Resource Server").body(nullPostCreationResponse);
+            }
 
             String titlePost = createdPostEntity.getTitle();
 
@@ -54,6 +71,21 @@ public class PostService {
         nullPostCreationResponse.setResponseText("Something went wrong!");
         nullPostCreationResponse.setStatusCode("-1");
         return ResponseEntity.badRequest().header("status", "Something went wrong.").body(nullPostCreationResponse);
+    }
+
+    private boolean isUserFound(String userName, String passWord) {
+        try{
+            RestTemplate restTemplate = restTemplateBuilder.basicAuthorization(userName,passWord).build();
+            String URI = coolioServiceURL + "/protected/isUserFound";
+            String response = restTemplate.getForObject(URI, String.class);
+            if(response.equals("1")){
+                System.out.println("RESPONSE " + response);
+                return true;
+            }
+        } catch (Exception e){
+            return false;
+        }
+        return true;
     }
 
     private boolean sanityCheck(PostCreationRequest postCreationRequest) {

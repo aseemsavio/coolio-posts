@@ -18,7 +18,7 @@ public class PostsController {
 
     @GetMapping("/hi")
     public String getString(){
-        return "hello, posts!";
+        return "Hello World, this is the POSTs microservice.";
     }
 
     @PostMapping("/createPost")
