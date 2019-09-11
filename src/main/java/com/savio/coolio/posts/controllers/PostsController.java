@@ -16,6 +16,11 @@ public class PostsController {
     @Autowired
     PostService postService;
 
+    @GetMapping("/all/lub")
+    public String healthCheck(){
+        return "dub";
+    }
+
     @GetMapping("/hi")
     public String getString(){
         return "Hello World, this is the POSTs microservice.";
@@ -24,6 +29,11 @@ public class PostsController {
     @PostMapping("/createPost")
     public ResponseEntity<PostCreationResponse> createPost(@RequestBody PostCreationRequest postCreationRequest){
         return postService.createPost(postCreationRequest);
+    }
+
+    @GetMapping("/rabbitmq")
+    public String sendRabbitMQ(){
+        return postService.dropMessageToRabbitMQ();
     }
 
 }
